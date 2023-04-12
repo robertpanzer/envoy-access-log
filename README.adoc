@@ -1,0 +1,39 @@
+= Reproducer repository
+
+This repository contains a reproducer to showcase the issues with the flag `%RESPONSE_CODE_DETAILS%` in the access log:
+
+When Envoy returns a HTTP 502 because a response contains too many headers or the response header is larger than 60KB, the flag `%RESPONSE_CODE_DETAILS%` only shows `upstream_reset_before_response_started\{protocol_error}`, instead of the values documented in https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_conn_man/response_code_details, i.e., `http1.headers_too_large` or `http1.too_many_headers`.
+
+To reproduce the issue start the test server:
+
+----
+# go run main.go
+2023/04/12 09:18:50 Listening on [::]:8888
+----
+
+Then run Envoy:
+
+----
+# envoy -c envoy.yaml
+----
+
+Then send the following requests:
+
+----
+# curl localhost:8887/hello
+Hello, World%
+# curl localhost:8887/toomanyheaders
+upstream connect error or disconnect/reset before headers. reset reason: protocol error
+# curl localhost:8887/toomanyheaderbytes
+upstream connect error or disconnect/reset before headers. reset reason: protocol error
+----
+
+The access log of Envoy shows:
+
+----
+[2023-04-12T07:20:37.921Z] "GET /hello HTTP/1.1" 200 - via_upstream - "-" 0 12 39 38 "-" "curl/7.87.0" "70d9bce7-00bc-4e0a-9450-800bf9d8bd09" "localhost:8887" "-" "-" "-" "- " "-" "192.168.0.225:8888" inbound 172.17.0.3:43606 172.17.0.3:8887 172.17.0.1:34686 - -
+[2023-04-12T07:20:50.890Z] "GET /toomanyheaders HTTP/1.1" 502 UPE upstream_reset_before_response_started{protocol_error} - "-" 0 87 92 - "-" "curl/7.87.0" "10316164-77c6-4ea4-a7a1-4371dbb1aa24" "localhost:8887" "-" "-" "-" "- " "-" "192.168.0.225:8888" inbound 172.17.0.3:40112 172.17.0.3:8887 172.17.0.1:37802 - -
+[2023-04-12T07:21:07.746Z] "GET /toomanyheaderbytes HTTP/1.1" 502 UPE upstream_reset_before_response_started{protocol_error} - "-" 0 87 721 - "-" "curl/7.87.0" "b51c8970-30c8-42bc-aa3b-26de4daeec4b" "localhost:8887" "-" "-" "-" "- " "-" "192.168.0.225:8888" inbound 172.17.0.3:48298 172.17.0.3:8887 172.17.0.1:48050 - -
+----
+
+NOTE: The upstream address in above access log shows because I am running Envoy in a Docker container and changed the IP address to the address of my host.
