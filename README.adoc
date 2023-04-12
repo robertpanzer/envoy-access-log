@@ -36,4 +36,4 @@ The access log of Envoy shows:
 [2023-04-12T07:21:07.746Z] "GET /toomanyheaderbytes HTTP/1.1" 502 UPE upstream_reset_before_response_started{protocol_error} - "-" 0 87 721 - "-" "curl/7.87.0" "b51c8970-30c8-42bc-aa3b-26de4daeec4b" "localhost:8887" "-" "-" "-" "- " "-" "192.168.0.225:8888" inbound 172.17.0.3:48298 172.17.0.3:8887 172.17.0.1:48050 - -
 ----
 
-NOTE: The upstream address in above access log shows because I am running Envoy in a Docker container and changed the IP address to the address of my host.
+NOTE: The upstream address in above access log shows `192.168.0.225:8888` because I am running Envoy in a Docker container and changed the IP address to the address of my host.
